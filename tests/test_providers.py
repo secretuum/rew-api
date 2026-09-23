@@ -243,3 +243,22 @@ def test_yandex_query_signature_is_order_independent(settings: Settings) -> None
     first = provider._sign_query({"page": 1, "businessId": "42", "locale": "ru_RU"})
     second = provider._sign_query({"locale": "ru_RU", "businessId": "42", "page": 1})
     assert first == second
+
+
+def test_yandex_keeps_regional_host_kz(settings: Settings) -> None:
+    provider = YandexMapsProvider(settings)
+    source = provider.resolve_source("https://yandex.kz/maps/org/del_cappuccino/100629485422/")
+    assert source.external_org_id == "100629485422"
+    assert source.normalized_url == "https://yandex.kz/maps/org/org/100629485422/reviews/"
+    context = {
+        "businessId": "100629485422",
+        "csrfToken": "csrf",
+        "sessionId": "session",
+        "reqId": "addrs-upper-1",
+        "retpath": source.normalized_url,
+    }
+    assert provider._build_api_url(context, page=1, page_size=50).startswith(
+        "https://yandex.kz/maps/api/business/fetchReviews?"
+    )
+    ru = provider.resolve_source("https://www.yandex.ru/maps/org/example/191403044676/")
+    assert ru.normalized_url == "https://yandex.ru/maps/org/org/191403044676/reviews/"

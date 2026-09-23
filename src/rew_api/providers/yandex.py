@@ -61,7 +61,9 @@ class YandexMapsProvider(ReviewProvider):
         if not external_id:
             raise ProviderError("Cannot extract Yandex organization id from URL")
 
-        normalized = f"https://yandex.ru/maps/org/org/{external_id}/reviews/"
+        # Keep the regional host of the source URL (yandex.kz for Kazakhstan): yandex.ru answers
+        # with a 302 to the regional domain there, and the client does not follow redirects.
+        normalized = f"https://{self._canonical_host(resolved)}/maps/org/org/{external_id}/reviews/"
         return ResolvedSource(
             provider=self.code,
             source_url=original,
@@ -240,12 +242,18 @@ class YandexMapsProvider(ReviewProvider):
                 current = urljoin(current, location)
         raise ProviderError("Yandex short URL has too many redirects")
 
-    @staticmethod
-    def _validate_yandex_url(url: str) -> None:
+    _hosts = ("yandex.ru", "yandex.com", "yandex.kz")
+
+    @classmethod
+    def _canonical_host(cls, url: str) -> str:
+        host = (urlsplit(url).hostname or "").lower().removeprefix("www.")
+        return host if host in cls._hosts else cls._hosts[0]
+
+    @classmethod
+    def _validate_yandex_url(cls, url: str) -> None:
         parsed = urlsplit(url)
-        host = (parsed.hostname or "").lower()
-        allowed = host in {"yandex.ru", "www.yandex.ru", "yandex.com", "www.yandex.com"}
-        if parsed.scheme != "https" or not allowed or not parsed.path.startswith("/maps/"):
+        host = (parsed.hostname or "").lower().removeprefix("www.")
+        if parsed.scheme != "https" or host not in cls._hosts or not parsed.path.startswith("/maps/"):
             raise ProviderError("Expected an HTTPS Yandex Maps URL")
 
     def _extract_organization_id(self, url: str) -> str | None:
@@ -295,7 +303,11 @@ class YandexMapsProvider(ReviewProvider):
             "sessionId": context["sessionId"],
         }
         query["s"] = self._sign_query(query)
-        return f"{self.api_endpoint}?{urlencode(query, quote_via=quote)}"
+        # The API lives on the same regional host as the reviews page (retpath).
+        endpoint = self.api_endpoint.replace(
+            "yandex.ru", self._canonical_host(context.get("retpath", "")), 1
+        )
+        return f"{endpoint}?{urlencode(query, quote_via=quote)}"
 
     @staticmethod
     def _sign_query(query: dict[str, Any]) -> str:

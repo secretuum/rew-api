@@ -262,3 +262,26 @@ def test_yandex_keeps_regional_host_kz(settings: Settings) -> None:
     )
     ru = provider.resolve_source("https://www.yandex.ru/maps/org/example/191403044676/")
     assert ru.normalized_url == "https://yandex.ru/maps/org/org/191403044676/reviews/"
+
+
+def test_yandex_follows_regional_redirect_once(settings: Settings) -> None:
+    provider = YandexMapsProvider(settings)
+
+    class _Resp:
+        def __init__(self, status: int, location: str | None = None) -> None:
+            self.status_code = status
+            self.is_redirect = status in (301, 302, 307, 308)
+            self.headers = {"location": location} if location else {}
+
+    class _Client:
+        def __init__(self, resp: _Resp) -> None:
+            self.resp = resp
+
+        def get(self, url: str) -> _Resp:
+            return self.resp
+
+    ru = "https://yandex.ru/maps/org/org/100629485422/reviews/"
+    kz = "https://yandex.kz/maps/org/org/100629485422/reviews/"
+    assert provider._regional_page_url(_Client(_Resp(302, kz)), ru) == kz
+    assert provider._regional_page_url(_Client(_Resp(200)), ru) == ru
+    assert provider._regional_page_url(_Client(_Resp(302, "https://evil.test/x")), ru) == ru

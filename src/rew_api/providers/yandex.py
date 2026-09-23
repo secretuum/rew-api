@@ -99,12 +99,13 @@ class YandexMapsProvider(ReviewProvider):
             headers=headers,
             follow_redirects=False,
         ) as client:
-            page_response = self.request(client, "GET", source.normalized_url)
+            page_url = self._regional_page_url(client, source.normalized_url)
+            page_response = self.request(client, "GET", page_url)
             body = page_response.text
             if self._looks_like_bot_protection(body):
                 raise ProviderError("Yandex returned bot protection instead of reviews")
 
-            context = self._extract_context(body, source.external_org_id, source.normalized_url)
+            context = self._extract_context(body, source.external_org_id, page_url)
             embedded_payloads = self._extract_embedded_payloads(body)
             for payload in embedded_payloads:
                 parsed = self.parse_review(payload)
@@ -243,6 +244,20 @@ class YandexMapsProvider(ReviewProvider):
         raise ProviderError("Yandex short URL has too many redirects")
 
     _hosts = ("yandex.ru", "yandex.com", "yandex.kz")
+
+    def _regional_page_url(self, client: httpx.Client, url: str) -> str:
+        """From Kazakhstan yandex.ru answers 302 to the regional domain (yandex.kz). Follow that
+        one hop when the target is a Yandex host, so sources stored with .ru keep working."""
+        try:
+            probe = client.get(url)
+        except httpx.HTTPError:
+            return url
+        if probe.is_redirect:
+            location = urljoin(url, probe.headers.get("location", ""))
+            host = (urlsplit(location).hostname or "").lower().removeprefix("www.")
+            if host in self._hosts:
+                return location
+        return url
 
     @classmethod
     def _canonical_host(cls, url: str) -> str:

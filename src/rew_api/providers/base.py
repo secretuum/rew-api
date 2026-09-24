@@ -44,6 +44,8 @@ class ProviderReview:
     text: str
     media: tuple[ProviderMedia, ...] = ()
     raw_payload: dict[str, Any] | None = None
+    business_reply_text: str | None = None
+    business_reply_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

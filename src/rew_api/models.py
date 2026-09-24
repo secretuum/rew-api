@@ -156,6 +156,8 @@ class Review(Base):
     rating: Mapped[int] = mapped_column(Integer, default=0)
     text: Mapped[str] = mapped_column(Text, default="")
     raw_payload: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    business_reply_text: Mapped[str | None] = mapped_column(Text)
+    business_reply_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True)
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

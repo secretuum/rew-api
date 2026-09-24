@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, quote, urlencode, urljoin, urlsplit
 
 import httpx
 
+from rew_api.replies import extract_business_reply
 from rew_api.providers.base import (
     ProviderError,
     ProviderFetchResult,
@@ -208,6 +209,7 @@ class YandexMapsProvider(ReviewProvider):
         except (TypeError, ValueError):
             rating = 0
 
+        reply = extract_business_reply("yandex", payload)
         return ProviderReview(
             external_id=external_id,
             author_name=str(author.get("name") or "Anonymous"),
@@ -217,7 +219,8 @@ class YandexMapsProvider(ReviewProvider):
             rating=max(0, min(5, rating)),
             text=text,
             media=self._extract_media(payload),
-            raw_payload=payload,
+            raw_payload=payload,            business_reply_text=reply.text if reply else None,
+            business_reply_at=reply.published_at if reply else None,
         )
 
     def _resolve_short_url(self, url: str) -> str:

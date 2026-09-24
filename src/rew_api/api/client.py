@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from rew_api.api.dependencies import current_project, get_session
 from rew_api.models import Organization, OrganizationSource, Project, Review
 from rew_api.schemas import (
+    BusinessReplyResponse,
     OrganizationResponse,
     ReviewMediaResponse,
     ReviewPage,
@@ -113,6 +114,14 @@ def list_reviews(
                 )
                 for media in review.media
             ],
+            business_reply=(
+                BusinessReplyResponse(
+                    text=review.business_reply_text,
+                    published_at=review.business_reply_at,
+                )
+                if review.business_reply_text
+                else None
+            ),
         )
         for review in reviews
     ]

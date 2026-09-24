@@ -81,6 +81,11 @@ class ReviewMediaResponse(BaseModel):
     preview_url: str | None
 
 
+class BusinessReplyResponse(BaseModel):
+    text: str
+    published_at: datetime | None
+
+
 class ReviewResponse(BaseModel):
     id: str
     organization_id: str
@@ -92,6 +97,7 @@ class ReviewResponse(BaseModel):
     rating: int
     text: str
     media: list[ReviewMediaResponse]
+    business_reply: BusinessReplyResponse | None = None
 
 
 class ReviewPage(BaseModel):

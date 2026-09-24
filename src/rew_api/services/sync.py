@@ -155,6 +155,8 @@ class ReviewSyncService:
             stored.rating = incoming.rating
             stored.text = incoming.text
             stored.raw_payload = incoming.raw_payload
+            stored.business_reply_text = incoming.business_reply_text
+            stored.business_reply_at = incoming.business_reply_at
             stored.is_visible = True
             stored.last_seen_at = now
             stored.media.clear()

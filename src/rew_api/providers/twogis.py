@@ -13,6 +13,7 @@ from playwright.sync_api import (
     sync_playwright,
 )
 
+from rew_api.replies import extract_business_reply
 from rew_api.providers.base import (
     ProviderError,
     ProviderFetchResult,
@@ -372,6 +373,7 @@ class TwoGisProvider(ReviewProvider):
         except (TypeError, ValueError):
             rating = 0
 
+        reply = extract_business_reply("2gis", payload)
         return ProviderReview(
             external_id=external_id,
             author_name=str(user.get("name") or "Anonymous"),
@@ -381,7 +383,8 @@ class TwoGisProvider(ReviewProvider):
             rating=max(0, min(5, rating)),
             text=text,
             media=media,
-            raw_payload=payload,
+            raw_payload=payload,            business_reply_text=reply.text if reply else None,
+            business_reply_at=reply.published_at if reply else None,
         )
 
     def _extract_media(self, payload: dict[str, Any]) -> tuple[ProviderMedia, ...]:
